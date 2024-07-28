@@ -1,0 +1,50 @@
+# File system
+.DS_Store
+
+# Maven
+/mvnw
+/mvnw.cmd
+!.mvn/wrapper/maven-wrapper.jar
+/.mvn/wrapper/maven-wrapper.properties
+
+# Build directories
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Build for other tools
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# IntelliJ IDEA
+.idea
+*.iws
+*.iml
+*.ipr
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# Spring Tool Suite (STS)
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# Visual Studio Code
+.vscode/
+
+# Documentation files
+HELP.md
+criteria.txt
+
+# Git configuration files
+.gitattributes

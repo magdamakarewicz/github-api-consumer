@@ -2,6 +2,7 @@ package com.enjoythecode.githubapiconsumer.repository;
 
 import com.enjoythecode.githubapiconsumer.dto.BranchDto;
 import com.enjoythecode.githubapiconsumer.dto.RepositoryDto;
+import com.enjoythecode.githubapiconsumer.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -9,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
@@ -29,14 +31,18 @@ public class GithubRepository {
         headers.set("Accept", "application/json");
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        ResponseEntity<List<RepositoryDto>> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                new ParameterizedTypeReference<List<RepositoryDto>>() {
-                }
-        );
-        return Optional.ofNullable(response.getBody()).orElse(Collections.emptyList());
+        try {
+            ResponseEntity<List<RepositoryDto>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    new ParameterizedTypeReference<List<RepositoryDto>>() {
+                    }
+            );
+            return Optional.ofNullable(response.getBody()).orElse(Collections.emptyList());
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new UserNotFoundException("User '" + username + "' not found");
+        }
     }
 
     public List<BranchDto> getRepositoryBranches(String username, String repoName) {
@@ -45,14 +51,18 @@ public class GithubRepository {
         headers.set("Accept", "application/json");
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        ResponseEntity<List<BranchDto>> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                new ParameterizedTypeReference<List<BranchDto>>() {
-                }
-        );
-        return Optional.ofNullable(response.getBody()).orElse(Collections.emptyList());
+        try {
+            ResponseEntity<List<BranchDto>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    new ParameterizedTypeReference<List<BranchDto>>() {
+                    }
+            );
+            return Optional.ofNullable(response.getBody()).orElse(Collections.emptyList());
+        } catch (HttpClientErrorException e) {
+            throw e;
+        }
     }
 
 }

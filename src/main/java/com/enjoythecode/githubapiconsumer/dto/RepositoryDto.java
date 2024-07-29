@@ -1,5 +1,6 @@
 package com.enjoythecode.githubapiconsumer.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,11 +13,12 @@ import java.util.List;
 @NoArgsConstructor
 public class RepositoryDto {
 
-    private String name;
-
     @JsonProperty("owner")
     private OwnerDto ownerDto;
 
+    private String name;
+
+    @JsonIgnore
     private boolean fork;
 
     private List<BranchDto> branches;

@@ -5,7 +5,7 @@ This project is a Spring Boot application designed to consume the GitHub API and
 ## Features
 
 - List all non-fork repositories for a given GitHub username. 
-- For each repository, list all branches with the latest commit SHA.
+- For each repository, list all branches with name, owner login and the latest commit SHA.
 - Proper error handling for non-existent GitHub users with a 404 response.
 
 ## Technologies Used
@@ -103,10 +103,7 @@ Unit and integration tests are provided to ensure the functionality of the appli
 mvn test
 ```
 
-## License
-This project is licensed under the MIT License.
-
-## Acknowledgements
+## References
 * [GitHub API v3 Documentation](https://developer.github.com/v3)
 * [Spring Boot Documentation](https://spring.io/projects/spring-boot)
 

@@ -63,6 +63,7 @@ class GithubRepositoryTest {
         assertNotNull(repositories);
         assertFalse(repositories.isEmpty());
         assertEquals(mockRepositories.size(), repositories.size());
+        assertEquals(mockRepositories.get(0).name(), repositories.get(0).name());
     }
 
     @Test
@@ -124,6 +125,7 @@ class GithubRepositoryTest {
         assertNotNull(branches);
         assertFalse(branches.isEmpty());
         assertEquals(mockBranches.size(), branches.size());
+        assertEquals(mockBranches.get(0).name(), branches.get(0).name());
     }
 
     @Test

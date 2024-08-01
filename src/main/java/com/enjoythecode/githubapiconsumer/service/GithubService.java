@@ -17,9 +17,14 @@ public class GithubService {
     public List<RepositoryDto> getUserNonForkRepositories(String username) {
         List<RepositoryDto> repositories = githubRepository.getUserRepositoriesByUsername(username);
         return repositories.stream()
-                .filter(repo -> !repo.isFork())
-                .peek(repo -> repo.setBranches(githubRepository.getRepositoryBranches(username, repo.getName())))
-                .collect(Collectors.toList());
+                .filter(repo -> !repo.fork())
+                .map(repo -> new RepositoryDto(
+                        repo.ownerDto(),
+                        repo.name(),
+                        repo.fork(),
+                        List.copyOf(githubRepository.getRepositoryBranches(username, repo.name()))
+                ))
+                .collect(Collectors.toUnmodifiableList());
     }
 
 }

@@ -13,9 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +37,8 @@ public class GithubRepository {
                     new ParameterizedTypeReference<List<RepositoryDto>>() {
                     }
             );
-            return Optional.ofNullable(response.getBody()).orElse(Collections.emptyList());
+            List<RepositoryDto> repos = response.getBody();
+            return repos != null ? List.copyOf(repos) : List.of();
         } catch (HttpClientErrorException.NotFound e) {
             throw new UserNotFoundException("User '" + username + "' not found");
         }
@@ -59,7 +58,8 @@ public class GithubRepository {
                     new ParameterizedTypeReference<List<BranchDto>>() {
                     }
             );
-            return Optional.ofNullable(response.getBody()).orElse(Collections.emptyList());
+            List<BranchDto> branches = response.getBody();
+            return branches != null ? List.copyOf(branches) : List.of();
         } catch (HttpClientErrorException e) {
             throw e;
         }

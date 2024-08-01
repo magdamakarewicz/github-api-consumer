@@ -38,7 +38,7 @@ class GithubServiceTest {
         BranchDto branch = new BranchDto("test-main", new CommitDto("test-sha-123"));
 
         when(githubRepository.getUserRepositoriesByUsername(username)).thenReturn(repositories);
-        when(githubRepository.getRepositoryBranches(username, repo1.getName())).thenReturn(List.of(branch));
+        when(githubRepository.getRepositoryBranches(username, repo1.name())).thenReturn(List.of(branch));
 
         //when
         List<RepositoryDto> result = githubService.getUserNonForkRepositories(username);
@@ -46,11 +46,13 @@ class GithubServiceTest {
         //then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(repo1.getName(), result.get(0).getName());
-        assertEquals(repo1.getOwnerDto().getLogin(), result.get(0).getOwnerDto().getLogin());
-        assertEquals(1, result.get(0).getBranches().size());
-        assertEquals(branch.getName(), result.get(0).getBranches().get(0).getName());
-        assertEquals(branch.getCommitDto().getSha(), result.get(0).getBranches().get(0).getCommitDto().getSha());
+        RepositoryDto returnedRepo = result.get(0);
+        assertEquals(repo1.name(), returnedRepo.name());
+        assertEquals(repo1.ownerDto().login(), returnedRepo.ownerDto().login());
+        assertEquals(1, returnedRepo.branches().size());
+        BranchDto returnedBranch = returnedRepo.branches().get(0);
+        assertEquals(branch.name(), returnedBranch.name());
+        assertEquals(branch.commitDto().sha(), returnedBranch.commitDto().sha());
     }
 
     @Test
@@ -65,8 +67,8 @@ class GithubServiceTest {
         BranchDto branch2 = new BranchDto("test-main", new CommitDto("test-sha-123"));
 
         when(githubRepository.getUserRepositoriesByUsername(username)).thenReturn(repositories);
-        when(githubRepository.getRepositoryBranches(username, repo1.getName())).thenReturn(List.of(branch1));
-        when(githubRepository.getRepositoryBranches(username, repo2.getName())).thenReturn(List.of(branch2));
+        when(githubRepository.getRepositoryBranches(username, repo1.name())).thenReturn(List.of(branch1));
+        when(githubRepository.getRepositoryBranches(username, repo2.name())).thenReturn(List.of(branch2));
 
         //when
         List<RepositoryDto> result = githubService.getUserNonForkRepositories(username);

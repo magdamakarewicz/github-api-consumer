@@ -42,7 +42,7 @@ class GithubControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(repositories.size(), response.getBody().size());
-        assertEquals(repo.getName(), response.getBody().get(0).getName());
+        assertEquals(repo.name(), response.getBody().get(0).name());
     }
 
     @Test

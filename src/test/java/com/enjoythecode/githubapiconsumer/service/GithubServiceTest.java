@@ -4,15 +4,14 @@ import com.enjoythecode.githubapiconsumer.dto.BranchDto;
 import com.enjoythecode.githubapiconsumer.dto.CommitDto;
 import com.enjoythecode.githubapiconsumer.dto.OwnerDto;
 import com.enjoythecode.githubapiconsumer.dto.RepositoryDto;
+import com.enjoythecode.githubapiconsumer.exception.UserNotFoundException;
 import com.enjoythecode.githubapiconsumer.repository.GithubRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.client.HttpClientErrorException;
+import reactor.core.publisher.Flux;
 
-import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,20 +36,20 @@ class GithubServiceTest {
 
         BranchDto branch = new BranchDto("test-main", new CommitDto("test-sha-123"));
 
-        when(githubRepository.getUserRepositoriesByUsername(username)).thenReturn(repositories);
-        when(githubRepository.getRepositoryBranches(username, repo1.name())).thenReturn(List.of(branch));
+        when(githubRepository.getUserRepositoriesByUsername(username)).thenReturn(Flux.fromIterable(repositories));
+        when(githubRepository.getRepositoryBranches(username, repo1.name())).thenReturn(Flux.just(branch));
 
         //when
-        List<RepositoryDto> result = githubService.getUserNonForkRepositories(username);
+        List<RepositoryDto> result = githubService.getUserNonForkRepositories(username).collectList().block();
 
         //then
         assertNotNull(result);
         assertEquals(1, result.size());
-        RepositoryDto returnedRepo = result.get(0);
+        RepositoryDto returnedRepo = result.getFirst();
         assertEquals(repo1.name(), returnedRepo.name());
         assertEquals(repo1.ownerDto().login(), returnedRepo.ownerDto().login());
         assertEquals(1, returnedRepo.branches().size());
-        BranchDto returnedBranch = returnedRepo.branches().get(0);
+        BranchDto returnedBranch = returnedRepo.branches().getFirst();
         assertEquals(branch.name(), returnedBranch.name());
         assertEquals(branch.commitDto().sha(), returnedBranch.commitDto().sha());
     }
@@ -66,12 +65,12 @@ class GithubServiceTest {
         BranchDto branch1 = new BranchDto("test-main", new CommitDto("test-sha-123"));
         BranchDto branch2 = new BranchDto("test-main", new CommitDto("test-sha-123"));
 
-        when(githubRepository.getUserRepositoriesByUsername(username)).thenReturn(repositories);
-        when(githubRepository.getRepositoryBranches(username, repo1.name())).thenReturn(List.of(branch1));
-        when(githubRepository.getRepositoryBranches(username, repo2.name())).thenReturn(List.of(branch2));
+        when(githubRepository.getUserRepositoriesByUsername(username)).thenReturn(Flux.fromIterable(repositories));
+        when(githubRepository.getRepositoryBranches(username, repo1.name())).thenReturn(Flux.just(branch1));
+        when(githubRepository.getRepositoryBranches(username, repo2.name())).thenReturn(Flux.just(branch2));
 
         //when
-        List<RepositoryDto> result = githubService.getUserNonForkRepositories(username);
+        List<RepositoryDto> result = githubService.getUserNonForkRepositories(username).collectList().block();
 
         //then
         assertNotNull(result);
@@ -83,10 +82,10 @@ class GithubServiceTest {
         //given
         String username = "test-user";
 
-        when(githubRepository.getUserRepositoriesByUsername(username)).thenReturn(Collections.emptyList());
+        when(githubRepository.getUserRepositoriesByUsername(username)).thenReturn(Flux.empty());
 
         //when
-        List<RepositoryDto> result = githubService.getUserNonForkRepositories(username);
+        List<RepositoryDto> result = githubService.getUserNonForkRepositories(username).collectList().block();
 
         //then
         assertNotNull(result);
@@ -94,14 +93,17 @@ class GithubServiceTest {
     }
 
     @Test
-    public void shouldHandleHttpClientErrorException() {
+    public void shouldHandleUserNotFoundException() {
         //given
         String username = "test-user";
         when(githubRepository.getUserRepositoriesByUsername(username))
-                .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "User not found"));
+                .thenReturn(Flux.error(new UserNotFoundException("User 'test-user' not found")));
 
         //when/then
-        assertThrows(HttpClientErrorException.class, () -> githubService.getUserNonForkRepositories(username));
+        UserNotFoundException thrown = assertThrows(
+                UserNotFoundException.class,
+                () -> githubService.getUserNonForkRepositories(username).collectList().block());
+        assertEquals("User 'test-user' not found", thrown.getMessage());
     }
 
 }

@@ -4,9 +4,7 @@ import com.enjoythecode.githubapiconsumer.dto.RepositoryDto;
 import com.enjoythecode.githubapiconsumer.repository.GithubRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import reactor.core.publisher.Flux;
 
 @Service
 @RequiredArgsConstructor
@@ -14,17 +12,19 @@ public class GithubService {
 
     private final GithubRepository githubRepository;
 
-    public List<RepositoryDto> getUserNonForkRepositories(String username) {
-        List<RepositoryDto> repositories = githubRepository.getUserRepositoriesByUsername(username);
-        return repositories.stream()
+    public Flux<RepositoryDto> getUserNonForkRepositories(String username) {
+        return githubRepository.getUserRepositoriesByUsername(username)
                 .filter(repo -> !repo.fork())
-                .map(repo -> new RepositoryDto(
-                        repo.ownerDto(),
-                        repo.name(),
-                        repo.fork(),
-                        List.copyOf(githubRepository.getRepositoryBranches(username, repo.name()))
-                ))
-                .collect(Collectors.toUnmodifiableList());
+                .flatMap(repo ->
+                        githubRepository.getRepositoryBranches(username, repo.name())
+                                .collectList()
+                                .map(branches -> new RepositoryDto(
+                                        repo.ownerDto(),
+                                        repo.name(),
+                                        repo.fork(),
+                                        branches
+                                ))
+                );
     }
 
 }

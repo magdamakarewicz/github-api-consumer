@@ -14,8 +14,6 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class GithubRepository {
 
-    private static final String GITHUB_API_BASE_URL = "https://api.github.com";
-
     private final WebClient webClient;
 
     public Flux<RepositoryDto> getUserRepositoriesByUsername(String username) {

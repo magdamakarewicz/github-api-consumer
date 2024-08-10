@@ -27,7 +27,7 @@ This project is a Spring Boot application designed to consume the GitHub API and
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/github-api-consumer.git
+git clone https://github.com/magdamakarewicz/github-api-consumer.git
 cd github-api-consumer
 ```
 

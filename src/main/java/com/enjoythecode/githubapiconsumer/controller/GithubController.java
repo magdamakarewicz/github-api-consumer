@@ -3,6 +3,7 @@ package com.enjoythecode.githubapiconsumer.controller;
 import com.enjoythecode.githubapiconsumer.dto.RepositoryDto;
 import com.enjoythecode.githubapiconsumer.service.GithubService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,7 +21,7 @@ public class GithubController {
     @GetMapping("/users/{username}/repos")
     public ResponseEntity<Flux<RepositoryDto>> getUserNonForkRepositories(@PathVariable String username) {
         Flux<RepositoryDto> repositories = githubService.getUserNonForkRepositories(username);
-        return ResponseEntity.ok(repositories);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(repositories);
     }
 
 }

@@ -14,8 +14,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -23,7 +25,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@Disabled("Temporarily ignoring all tests in this class")
 @SpringBootTest
 public class GithubControllerIntegrationTest {
 
@@ -40,6 +41,7 @@ public class GithubControllerIntegrationTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
     }
 
+    @Disabled("Temporarily ignoring test")
     @Test
     public void shouldReturnRepositoriesWhenServiceReturnsRepositories() throws Exception {
         //given
@@ -55,13 +57,22 @@ public class GithubControllerIntegrationTest {
                 ))
         );
 
-//        when(githubService.getUserNonForkRepositories(username)).thenReturn(mockRepositories);
+        when(githubService.getUserNonForkRepositories(username)).thenReturn(Flux.fromIterable(mockRepositories));
 
         //when/then
+        MvcResult result = mockMvc.perform(get("/api/github/users/" + username + "/repos")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        String content = result.getResponse().getContentAsString();
+        System.out.println("Response content: " + content); // Dodaj to, aby zobaczyć zawartość odpowiedzi
+
         mockMvc.perform(get("/api/github/users/" + username + "/repos")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$[0].name").value("repo1"))
                 .andExpect(jsonPath("$[0].owner.login").value("test-user"))
                 .andExpect(jsonPath("$[0].branches[0].name").value("branch1"))

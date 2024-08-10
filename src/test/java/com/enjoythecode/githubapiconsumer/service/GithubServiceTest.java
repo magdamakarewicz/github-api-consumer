@@ -33,7 +33,6 @@ class GithubServiceTest {
         RepositoryDto repo1 = new RepositoryDto(new OwnerDto(username), "repo1", false, List.of());
         RepositoryDto repo2 = new RepositoryDto(new OwnerDto(username), "repo2", true, List.of());
         List<RepositoryDto> repositories = List.of(repo1, repo2);
-
         BranchDto branch = new BranchDto("test-main", new CommitDto("test-sha-123"));
 
         when(githubRepository.getUserRepositoriesByUsername(username)).thenReturn(Flux.fromIterable(repositories));
@@ -45,11 +44,11 @@ class GithubServiceTest {
         //then
         assertNotNull(result);
         assertEquals(1, result.size());
-        RepositoryDto returnedRepo = result.getFirst();
+        RepositoryDto returnedRepo = result.get(0);
         assertEquals(repo1.name(), returnedRepo.name());
         assertEquals(repo1.ownerDto().login(), returnedRepo.ownerDto().login());
         assertEquals(1, returnedRepo.branches().size());
-        BranchDto returnedBranch = returnedRepo.branches().getFirst();
+        BranchDto returnedBranch = returnedRepo.branches().get(0);
         assertEquals(branch.name(), returnedBranch.name());
         assertEquals(branch.commitDto().sha(), returnedBranch.commitDto().sha());
     }
@@ -61,7 +60,6 @@ class GithubServiceTest {
         RepositoryDto repo1 = new RepositoryDto(new OwnerDto(username), "repo1", true, List.of());
         RepositoryDto repo2 = new RepositoryDto(new OwnerDto(username), "repo2", true, List.of());
         List<RepositoryDto> repositories = List.of(repo1, repo2);
-
         BranchDto branch1 = new BranchDto("test-main", new CommitDto("test-sha-123"));
         BranchDto branch2 = new BranchDto("test-main", new CommitDto("test-sha-123"));
 
@@ -96,6 +94,7 @@ class GithubServiceTest {
     public void shouldHandleUserNotFoundException() {
         //given
         String username = "test-user";
+
         when(githubRepository.getUserRepositoriesByUsername(username))
                 .thenReturn(Flux.error(new UserNotFoundException("User 'test-user' not found")));
 

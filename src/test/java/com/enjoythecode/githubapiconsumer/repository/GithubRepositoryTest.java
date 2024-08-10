@@ -6,102 +6,106 @@ import com.enjoythecode.githubapiconsumer.dto.OwnerDto;
 import com.enjoythecode.githubapiconsumer.dto.RepositoryDto;
 import com.enjoythecode.githubapiconsumer.exception.UserNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Flux;
 
-import java.util.Collections;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-@Disabled("Temporarily ignoring all tests in this class")
 @SpringBootTest
 class GithubRepositoryTest {
 
     @Mock
-    private RestTemplate restTemplate;
+    private WebClient webClient;
+
+    @Mock
+    private WebClient.RequestHeadersUriSpec requestHeadersUriSpec;
+
+    @Mock
+    private WebClient.RequestHeadersSpec requestHeadersSpec;
+
+    @Mock
+    private WebClient.ResponseSpec responseSpec;
 
     @InjectMocks
     private GithubRepository githubRepository;
 
-    private HttpHeaders headers;
-
-    private HttpEntity<Void> entity;
-
     @BeforeEach
     public void setup() {
-        headers = new HttpHeaders();
-        headers.set("Accept", "application/json");
-        entity = new HttpEntity<>(headers);
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersSpec.accept(MediaType.APPLICATION_JSON)).thenReturn(requestHeadersSpec);
     }
 
     @Test
     public void shouldReturnRepositoriesWhenApiReturnsRepositories() {
         //given
         String username = "test-user";
-        String url = "https://api.github.com/users/" + username + "/repos";
         List<RepositoryDto> mockRepositories = List.of(
                 new RepositoryDto(new OwnerDto(username), "test", false, List.of())
         );
-        ResponseEntity<List<RepositoryDto>> responseEntity = ResponseEntity.ok(mockRepositories);
 
-        when(restTemplate.exchange(eq(url), eq(HttpMethod.GET), eq(entity), any(ParameterizedTypeReference.class)))
-                .thenReturn(responseEntity);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToFlux(RepositoryDto.class)).thenReturn(Flux.fromIterable(mockRepositories));
+        when(requestHeadersUriSpec.uri(any(String.class), any(String.class))).thenReturn(requestHeadersSpec);
 
         //when
-//        List<RepositoryDto> repositories = githubRepository.getUserRepositoriesByUsername(username);
+        List<RepositoryDto> repositories = githubRepository.getUserRepositoriesByUsername(username).collectList().block();
 
         //then
-//        assertNotNull(repositories);
-//        assertFalse(repositories.isEmpty());
-//        assertEquals(mockRepositories.size(), repositories.size());
-//        assertEquals(mockRepositories.get(0).name(), repositories.get(0).name());
+        assertEquals(1, repositories.size());
+        RepositoryDto repository = repositories.get(0);
+        assertEquals("test", repository.name());
+        assertEquals(username, repository.ownerDto().login());
     }
 
     @Test
     public void shouldReturnEmptyListWhenApiReturnsEmptyResponseForRepositories() {
         //given
         String username = "test-user";
-        String url = "https://api.github.com/users/" + username + "/repos";
-        ResponseEntity<List<RepositoryDto>> responseEntity = ResponseEntity.ok(Collections.emptyList());
 
-        when(restTemplate.exchange(eq(url), eq(HttpMethod.GET), eq(entity), any(ParameterizedTypeReference.class)))
-                .thenReturn(responseEntity);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToFlux(RepositoryDto.class)).thenReturn(Flux.empty());
+        when(requestHeadersUriSpec.uri(any(String.class), any(String.class))).thenReturn(requestHeadersSpec);
 
         //when
-//        List<RepositoryDto> repositories = githubRepository.getUserRepositoriesByUsername(username);
+        List<RepositoryDto> repositories = githubRepository.getUserRepositoriesByUsername(username).collectList().block();
 
         //then
-//        assertNotNull(repositories);
-//        assertTrue(repositories.isEmpty());
+        assertEquals(0, repositories.size());
     }
 
     @Test
     public void shouldThrowUserNotFoundExceptionWhenApiReturns404ForRepositories() {
         //given
         String username = "test-user";
-        String url = "https://api.github.com/users/" + username + "/repos";
-
-        HttpClientErrorException exception = HttpClientErrorException.create(
-                HttpStatus.NOT_FOUND, "User not found", null, null, null
+        WebClientResponseException exception = WebClientResponseException.create(
+                HttpStatus.NOT_FOUND.value(),
+                "User not found",
+                org.springframework.http.HttpHeaders.EMPTY,
+                null,
+                StandardCharsets.UTF_8
         );
 
-        when(restTemplate.exchange(eq(url), eq(HttpMethod.GET), eq(entity), any(ParameterizedTypeReference.class)))
-                .thenThrow(exception);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToFlux(RepositoryDto.class)).thenReturn(Flux.error(exception));
+        when(requestHeadersUriSpec.uri(any(String.class), any(String.class))).thenReturn(requestHeadersSpec);
 
         //when/then
         UserNotFoundException thrown = assertThrows(UserNotFoundException.class,
-                () -> githubRepository.getUserRepositoriesByUsername(username)
+                () -> githubRepository.getUserRepositoriesByUsername(username).collectList().block()
         );
         assertEquals("User 'test-user' not found", thrown.getMessage());
     }
@@ -111,23 +115,23 @@ class GithubRepositoryTest {
         //given
         String username = "test-user";
         String repoName = "test";
-        String url = "https://api.github.com/repos/" + username + "/" + repoName + "/branches";
         List<BranchDto> mockBranches = List.of(
                 new BranchDto("test-main", new CommitDto("test-sha-123"))
         );
-        ResponseEntity<List<BranchDto>> responseEntity = ResponseEntity.ok(mockBranches);
 
-        when(restTemplate.exchange(eq(url), eq(HttpMethod.GET), eq(entity), any(ParameterizedTypeReference.class)))
-                .thenReturn(responseEntity);
+        when(requestHeadersUriSpec.uri(eq("/repos/{username}/{repoName}/branches"), eq(username), eq(repoName)))
+                .thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToFlux(BranchDto.class)).thenReturn(Flux.fromIterable(mockBranches));
 
         //when
-//        List<BranchDto> branches = githubRepository.getRepositoryBranches(username, repoName);
+        List<BranchDto> branches = githubRepository.getRepositoryBranches(username, repoName).collectList().block();
 
         //then
-//        assertNotNull(branches);
-//        assertFalse(branches.isEmpty());
-//        assertEquals(mockBranches.size(), branches.size());
-//        assertEquals(mockBranches.get(0).name(), branches.get(0).name());
+        assertEquals(1, branches.size());
+        BranchDto branch = branches.get(0);
+        assertEquals("test-main", branch.name());
+        assertEquals("test-sha-123", branch.commitDto().sha());
     }
 
     @Test
@@ -135,18 +139,17 @@ class GithubRepositoryTest {
         //given
         String username = "test-user";
         String repoName = "test";
-        String url = "https://api.github.com/repos/" + username + "/" + repoName + "/branches";
-        ResponseEntity<List<BranchDto>> responseEntity = ResponseEntity.ok(Collections.emptyList());
 
-        when(restTemplate.exchange(eq(url), eq(HttpMethod.GET), eq(entity), any(ParameterizedTypeReference.class)))
-                .thenReturn(responseEntity);
+        when(requestHeadersUriSpec.uri(eq("/repos/{username}/{repoName}/branches"), eq(username), eq(repoName)))
+                .thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToFlux(BranchDto.class)).thenReturn(Flux.empty());
 
         //when
-//        List<BranchDto> branches = githubRepository.getRepositoryBranches(username, repoName);
+        List<BranchDto> branches = githubRepository.getRepositoryBranches(username, repoName).collectList().block();
 
         //then
-//        assertNotNull(branches);
-//        assertTrue(branches.isEmpty());
+        assertEquals(0, branches.size());
     }
 
     @Test
@@ -154,17 +157,25 @@ class GithubRepositoryTest {
         //given
         String username = "test-user";
         String repoName = "test";
-        String url = "https://api.github.com/repos/" + username + "/" + repoName + "/branches";
+        WebClientResponseException exception = WebClientResponseException.create(
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                org.springframework.http.HttpHeaders.EMPTY,
+                null,
+                StandardCharsets.UTF_8
+        );
 
-        when(restTemplate.exchange(eq(url), eq(HttpMethod.GET), eq(entity), any(ParameterizedTypeReference.class)))
-                .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Bad Request"));
+        when(requestHeadersUriSpec.uri(eq("/repos/{username}/{repoName}/branches"), eq(username), eq(repoName)))
+                .thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToFlux(BranchDto.class)).thenReturn(Flux.error(exception));
 
         //when/then
-        HttpClientErrorException thrown = assertThrows(HttpClientErrorException.class,
-                () -> githubRepository.getRepositoryBranches(username, repoName)
+        WebClientResponseException thrown = assertThrows(WebClientResponseException.class,
+                () -> githubRepository.getRepositoryBranches(username, repoName).collectList().block()
         );
         assertEquals(HttpStatus.BAD_REQUEST, thrown.getStatusCode());
-        assertTrue(thrown.getMessage().contains("Bad Request"));
+        assertEquals("Bad Request", thrown.getStatusText());
     }
 
 }
